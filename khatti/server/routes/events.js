@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
+const authMiddleware = require('../middleware/auth');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
 );
 
-// GET all events
+// GET all events - public, no auth needed
 router.get('/', async (req, res) => {
   const { data, error } = await supabase
     .from('events')
@@ -20,7 +21,7 @@ router.get('/', async (req, res) => {
   res.json(data);
 });
 
-// GET single event
+// GET single event - public
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
 
@@ -37,9 +38,9 @@ router.get('/:id', async (req, res) => {
   res.json(data);
 });
 
-// POST create event
-router.post('/', async (req, res) => {
-  const { title, description, category, lat, lng, address, host_id, event_date } = req.body;
+// POST create event - protected
+router.post('/', authMiddleware, async (req, res) => {
+  const { title, description, category, lat, lng, address, event_date } = req.body;
 
   if (!title || !category || !lat || !lng) {
     return res.status(400).json({ error: 'Title, category, lat and lng are required' });
@@ -47,7 +48,16 @@ router.post('/', async (req, res) => {
 
   const { data, error } = await supabase
     .from('events')
-    .insert({ title, description, category, lat, lng, address, host_id, event_date })
+    .insert({
+      title,
+      description,
+      category,
+      lat,
+      lng,
+      address,
+      host_id: req.user.id,
+      event_date,
+    })
     .select()
     .single();
 
@@ -58,9 +68,19 @@ router.post('/', async (req, res) => {
   res.status(201).json(data);
 });
 
-// DELETE event
-router.delete('/:id', async (req, res) => {
+// DELETE event - protected
+router.delete('/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
+
+  const { data: event } = await supabase
+    .from('events')
+    .select('host_id')
+    .eq('id', id)
+    .single();
+
+  if (event.host_id !== req.user.id) {
+    return res.status(403).json({ error: 'You can only delete your own events' });
+  }
 
   const { error } = await supabase
     .from('events')

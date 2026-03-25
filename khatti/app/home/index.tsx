@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, TouchableOpacity, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -38,6 +38,10 @@ export default function Home() {
       getEvents();
     }, [])
   );
+
+  async function logout() {
+    await supabase.auth.signOut();
+  }
 
   function handleMapPress(e: any) {
     const { latitude, longitude } = e.nativeEvent.coordinate;
@@ -79,9 +83,17 @@ export default function Home() {
             title={event.title}
             description={event.description}
             pinColor="#f97316"
+            onPress={() => router.push({
+              pathname: '/event-detail',
+              params: { id: event.id },
+            } as any)}
           />
         ))}
       </MapView>
+
+      <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -90,4 +102,14 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  logoutButton: {
+    position: 'absolute',
+    top: 60,
+    right: 16,
+    backgroundColor: '#333',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  logoutText: { color: '#fff', fontWeight: 'bold' },
 });

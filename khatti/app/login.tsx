@@ -9,22 +9,31 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   async function signUp() {
+  setLoading(true);
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        name: email.split('@')[0], // uses part before @ as name for now
+      }
+    }
+  });
+  if (error) setMessage(error.message);
+  setLoading(false);
+}
+
+  async function signIn() {
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { data,error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setMessage(error.message);
+    }else {
+      console.log('TOKEN:', data.session.access_token);
     }
     setLoading(false);
   }
 
-  async function signIn() {
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setMessage(error.message);
-    }
-    setLoading(false);
-  }
 
   return (
     <View style={styles.container}>
@@ -69,3 +78,4 @@ const styles = StyleSheet.create({
   buttonText: { color: '#fff', textAlign: 'center', fontWeight: 'bold', fontSize: 16 },
   message: { textAlign: 'center', marginTop: 16, color: 'red' },
 });
+
